@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Similarity Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+        }
+        .loader {
+            border: 16px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 16px solid #3498db;
+            width: 120px;
+            height: 120px;
+            animation: spin 2s linear infinite;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Hello! Upload Your Files</h1>
+        <form id="upload-form" method="post" enctype="multipart/form-data">
+            <label>Upload image here:</label><br>
+            <input type="file" name="image" id="image" required><br><br>
+            <label>Upload zip file here:</label><br>
+            <input type="file" name="zipfile" id="zipfile"><br><br>
+            <label>or Enter directory path:</label><br>
+            <input type="text" name="directory" id="directory" placeholder="Directory Path"><br><br>
+            <input type="number" step="0.01" name="threshold" id="threshold" min ='0.0' max = '1.0' placeholder="Threshold (0.0 to 1.0)" required><br><br>
+            <button type="button" onclick="submitForm()">Run</button>
+        </form>
+        <div class="loader" id="loader"></div>
+        <div id="result"></div>
+    </div>
+    <script>
+        function submitForm() {
+            const formData = new FormData(document.getElementById('upload-form'));
+            const loader = document.getElementById('loader');
+            const resultDiv = document.getElementById('result');
+            loader.style.display = 'block';
+            resultDiv.innerHTML = '';
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loader.style.display = 'none';
+                if (data.error) {
+                    resultDiv.innerHTML = `<p>${data.error}</p>`;
+                } else {
+                    resultDiv.innerHTML = `<h2>Results:</h2>`;
+                    if (data.clustered_images) {
+                        data.clustered_images.forEach(img => {
+                            const imgElement = document.createElement('img');
+                            imgElement.src = `data:image/jpeg;base64,${btoa(String.fromCharCode(...new Uint8Array(img[1])))}`;
+                            resultDiv.appendChild(imgElement);
+                        });
+                    } else {
+                        resultDiv.innerHTML += `<p>${data}</p>`;
+                    }
+                }
+            })
+            .catch(error => {
+                loader.style.display = 'none';
+                resultDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+            });
+        }
+    </script>
+</body>
+</html>
